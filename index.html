@@ -1843,6 +1843,7 @@
           <textarea id="sp-message" class="form-input" placeholder="What would you like Nicole to speak on? How can she serve your audience?"></textarea>
         </div>
         <button class="btn btn-gold form-submit" onclick="submitSpeakingForm()">Submit Inquiry</button>
+        <p id="sp-status" style="margin-top:12px;font-size:.85rem;display:none;"></p>
       </div>
     </div>
   </section>
@@ -2176,26 +2177,27 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">First Name</label>
-              <input class="form-input" type="text" placeholder="First name">
+              <input id="ct-first" class="form-input" type="text" placeholder="First name">
             </div>
             <div class="form-group">
               <label class="form-label">Last Name</label>
-              <input class="form-input" type="text" placeholder="Last name">
+              <input id="ct-last" class="form-input" type="text" placeholder="Last name">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Email</label>
-            <input class="form-input" type="email" placeholder="your@email.com">
+            <input id="ct-email" class="form-input" type="email" placeholder="your@email.com">
           </div>
           <div class="form-group">
             <label class="form-label">Subject</label>
-            <input class="form-input" type="text" placeholder="What is this about?">
+            <input id="ct-subject" class="form-input" type="text" placeholder="What is this about?">
           </div>
           <div class="form-group">
             <label class="form-label">Message</label>
-            <textarea class="form-input" placeholder="Tell us what's on your mind."></textarea>
+            <textarea id="ct-message" class="form-input" placeholder="Tell us what's on your mind."></textarea>
           </div>
-          <button class="btn btn-gold form-submit">Send Message</button>
+          <button class="btn btn-gold form-submit" onclick="submitContactForm()">Send Message</button>
+          <p id="ct-status" style="margin-top:12px;font-size:.85rem;display:none;"></p>
         </div>
       </div>
     </div>
@@ -2292,30 +2294,106 @@
   }
   triggerReveals();
 
-  // ─── SPEAKING FORM EMAIL ───────────────────────
-  function submitSpeakingForm() {
+  // ─── FORMSPREE ENDPOINT ────────────────────────
+  const FORMSPREE = 'https://formspree.io/f/mdavoqzk';
+
+  // ─── SPEAKING FORM ─────────────────────────────
+  async function submitSpeakingForm() {
     const first   = document.getElementById('sp-first').value.trim();
     const last    = document.getElementById('sp-last').value.trim();
     const email   = document.getElementById('sp-email').value.trim();
     const org     = document.getElementById('sp-org').value.trim();
     const event   = document.getElementById('sp-event').value.trim();
     const message = document.getElementById('sp-message').value.trim();
+    const status  = document.getElementById('sp-status');
 
     if (!first || !email) {
       alert('Please enter your name and email address before submitting.');
       return;
     }
 
-    const subject = encodeURIComponent('Speaking Inquiry from ' + first + ' ' + last);
-    const body = encodeURIComponent(
-      'Name: ' + first + ' ' + last + '\n' +
-      'Email: ' + email + '\n' +
-      'Organization: ' + org + '\n' +
-      'Event Type & Date: ' + event + '\n\n' +
-      'Message:\n' + message
-    );
+    status.style.display = 'block';
+    status.style.color = '#5aadad';
+    status.textContent = 'Sending...';
 
-    window.location.href = 'mailto:Nicole@NicoleLTurner.com?subject=' + subject + '&body=' + body;
+    try {
+      const res = await fetch(FORMSPREE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          name: first + ' ' + last,
+          email: email,
+          organization: org,
+          event: event,
+          message: message,
+          _subject: 'Speaking Inquiry from ' + first + ' ' + last
+        })
+      });
+      if (res.ok) {
+        status.style.color = '#2d7a2d';
+        status.textContent = 'Your inquiry has been sent. Nicole will be in touch soon.';
+        document.getElementById('sp-first').value = '';
+        document.getElementById('sp-last').value = '';
+        document.getElementById('sp-email').value = '';
+        document.getElementById('sp-org').value = '';
+        document.getElementById('sp-event').value = '';
+        document.getElementById('sp-message').value = '';
+      } else {
+        status.style.color = '#cc3300';
+        status.textContent = 'Something went wrong. Please try again.';
+      }
+    } catch(e) {
+      status.style.color = '#cc3300';
+      status.textContent = 'Something went wrong. Please try again.';
+    }
+  }
+
+  // ─── CONTACT FORM ──────────────────────────────
+  async function submitContactForm() {
+    const first   = document.getElementById('ct-first').value.trim();
+    const last    = document.getElementById('ct-last').value.trim();
+    const email   = document.getElementById('ct-email').value.trim();
+    const subject = document.getElementById('ct-subject').value.trim();
+    const message = document.getElementById('ct-message').value.trim();
+    const status  = document.getElementById('ct-status');
+
+    if (!first || !email) {
+      alert('Please enter your name and email address before submitting.');
+      return;
+    }
+
+    status.style.display = 'block';
+    status.style.color = '#2d7a7a';
+    status.textContent = 'Sending...';
+
+    try {
+      const res = await fetch(FORMSPREE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          name: first + ' ' + last,
+          email: email,
+          subject: subject,
+          message: message,
+          _subject: subject || 'New message from ' + first + ' ' + last
+        })
+      });
+      if (res.ok) {
+        status.style.color = '#2d7a2d';
+        status.textContent = 'Your message has been sent. Thank you for reaching out.';
+        document.getElementById('ct-first').value = '';
+        document.getElementById('ct-last').value = '';
+        document.getElementById('ct-email').value = '';
+        document.getElementById('ct-subject').value = '';
+        document.getElementById('ct-message').value = '';
+      } else {
+        status.style.color = '#cc3300';
+        status.textContent = 'Something went wrong. Please try again.';
+      }
+    } catch(e) {
+      status.style.color = '#cc3300';
+      status.textContent = 'Something went wrong. Please try again.';
+    }
   }
 
   const sw = document.getElementById('soundwave');
